@@ -24,7 +24,7 @@
         "net-analyzer/zabbix",
         "dev-util/trace-cmd"
     ],
-    "buildtime-packages": [
+    buildtime_packages: [
         //"@php74"
         "app-arch/rpm2targz",
         "dev-util/patchelf",
