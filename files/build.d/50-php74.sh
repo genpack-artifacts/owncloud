@@ -13,7 +13,7 @@ for i in oniguruma5php gd3php libavif libicu74; do
 done
 
 CENTOS_URL=http://ftp.riken.jp/Linux/centos-stream/9-stream/BaseOS/$ARCH/os/
-for i in libxml2 libsmbclient samba-client-libs libwbclient libicu libtevent libldb; do
+for i in libxml2 libsmbclient samba-client-libs samba-common-libs libwbclient libicu libtevent libldb; do
 	download `get-rpm-download-url $CENTOS_URL $i` > /tmp/sandbox/$i.rpm
 done
 
