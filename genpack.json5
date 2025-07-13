@@ -32,10 +32,12 @@
     use:{
         "www-servers/apache": "APACHE2_MODULES: http2 proxy proxy_connect proxy_http proxy_ajp proxy_fcgi remoteip",
         "net-analyzer/zabbix": "curl -frontend -mysql proxy -server snmp openipmi ssh libxml2 -postgres  sqlite",
-        "net-analyzer/fping":"suid"
+        "net-analyzer/fping":"suid",
+        "dev-libs/jemalloc": "stats"
     },
     license:{
-        "net-analyzer/fping":"fping"
+        "net-analyzer/fping":"fping",
+        "dev-db/redis": "SSPL-1"
     },
     services:["apache2", "mysqld", "postfix", "redis"]
 }
