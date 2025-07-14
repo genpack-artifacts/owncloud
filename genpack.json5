@@ -42,6 +42,30 @@
         "net-analyzer/fping":"fping",
         "dev-db/redis": "SSPL-1"
     },
-    services:["apache2", "mysqld", "postfix", "redis"]
+    services:["apache2", "mysqld", "postfix", "redis"],
+    variants: {
+        "selftestable": {
+            packages: [
+                "dev-libs/weston-deferred",
+                "www-client/google-chrome",
+                "media-fonts/vlgothic",
+            ],
+            use: {
+                // for weston
+                "*/*": "-X wayland", 
+                "sys-auth/seatd": "server",
+                // for google-chrome
+                "media-libs/libepoxy": "X",
+                "x11-libs/gtk+": "X",
+                "x11-libs/cairo": "X",
+                "media-libs/libglvnd": "X",
+                "app-text/xmlto": "text", 
+            },
+            license:{
+                "www-client/google-chrome": "google-chrome"
+            },
+            services: ["weston","seatd"]
+        }
+    }
 }
 // vm run --hostfwd=tcp::3000-:80 owncloud-$(uname -m).squashfs
