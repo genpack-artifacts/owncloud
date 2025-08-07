@@ -27,7 +27,7 @@ for i in libraqm svt-av1-libs liblzf libimagequant; do
 	download `get-rpm-download-url $EPEL_URL $i` > /tmp/sandbox/$i.rpm
 done
 
-FEDORA_URL=http://ftp.riken.jp/Linux/fedora/releases/39/Everything/$ARCH/os/
+FEDORA_URL=https://archives.fedoraproject.org/pub/archive/fedora/linux/releases/39/Everything/$ARCH/os/
 for i in libdav1d; do
     download `get-rpm-download-url $FEDORA_URL $i` > /tmp/sandbox/$i.rpm
 done
