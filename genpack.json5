@@ -22,7 +22,9 @@
         "net-analyzer/zabbix",
         "dev-util/trace-cmd",
 
-        "net-vpn/frp"
+        "net-vpn/frp",
+
+        "dev-libs/nss"  // certutil (for trust-private-ca.py)
     ],
     buildtime_packages: [
         //"@php74"
