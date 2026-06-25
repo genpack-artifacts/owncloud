@@ -30,6 +30,7 @@
         //"@php74"
         "app-arch/rpm2targz",
         "dev-util/patchelf",
+        "app-misc/jq",  // for parsing GitHub API response to detect latest ownCloud version
     ],
     accept_keywords: {
         "net-vpn/frp": null,

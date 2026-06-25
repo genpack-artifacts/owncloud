@@ -28,7 +28,9 @@ sed -i 's/^;default_charset.\+$/default_charset="UTF-8"/' $PHP_INI
 
 
 echo "Extrtacting ownCloud..."
-download https://download.owncloud.com/server/stable/owncloud-latest.tar.bz2 | tar jxf - --strip-components=1 -C /var/www/localhost/htdocs
+OWNCLOUD_VERSION=$(curl -s https://api.github.com/repos/owncloud/core/releases/latest | jq -r '.tag_name | ltrimstr("v")')
+echo "ownCloud version: $OWNCLOUD_VERSION"
+download "https://download.owncloud.com/server/stable/owncloud-${OWNCLOUD_VERSION}.tar.bz2" | tar jxf - --strip-components=1 -C /var/www/localhost/htdocs
 
 mkdir /var/lib/owncloud
 chown -R apache.apache /var/www/localhost /var/lib/owncloud
