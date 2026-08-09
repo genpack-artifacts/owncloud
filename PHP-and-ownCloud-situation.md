@@ -77,15 +77,39 @@ https://github.com/owncloud/core/releases/download/v11.0.0/owncloud-11.0.0.tar.b
    独立する。ZTS 版が Portage に無い pecl 拡張をそのまま使える。
 
 姉妹アーティファクトの `nextcloud` は mod_php を選んだ結果、pecl-imagick が ZTS 非対応
-なので prefork MPM に固定せざるを得なくなっている。こちらは fpm なので、将来 event /
-worker MPM に切り替えたくなっても PHP を作り直す必要がない。
+なので prefork MPM に固定せざるを得なくなっている。
 
-なお **MPM は現状 prefork**（Gentoo の apache 既定。旧 PHP 7.4 イメージも同じ）で、
-**mod_http2 は元から無効**。`41_mod_http2.conf` 自体は入っているが、httpd.conf の
-`LoadModule http2_module` が `<IfDefine HTTP2>` で囲まれており、`APACHE2_OPTS` に
-`-D HTTP2` が付いていないため読み込まれない（`genpack/base` の `apache.sh` が足すのは
-`-D PROXY -D DAV` のみ）。HTTP/2 を有効にしたい場合は MPM を event に変えたうえで
-`-D HTTP2` を追加する必要がある。
+### MPM は event
+
+上記 2. の恩恵で、apache は **event MPM**（threaded）にしてある。apache 自体は静的
+ファイル配信と fcgi プロキシしかしないので、1 接続 1 プロセスの prefork には何の意味も
+なかった。実測でアイドル時 7 プロセス / 62.1 MiB → 4 プロセス / 45.5 MiB。
+
+MPM は**ビルド時に決まる**点に注意。`apache-2.eclass` の `setup_mpm()` が
+`--with-mpm=` を渡して静的リンクするので、実行時のスイッチでは変えられない。
+
+```
+APACHE2_MPMS に event/worker/prefork のいずれかを指定 → それを使う
+指定なし ┬ USE=threads あり → DEFAULT_MPM_THREADED = event
+         └ USE=threads なし → prefork
+```
+
+PHP 7.4 時代は `APACHE2_MPMS` 未指定・`threads` 無しだったので prefork にフォールバック
+していた。現在は `genpack.json5` で `threads` と `APACHE2_MPMS: event` を明示している
+（threaded MPM は `REQUIRED_USE` で `threads` を要求する）。`dev-libs/apr` には
+`threads` USE 自体が無いので、他に触る箇所はない。
+
+### HTTP/2 は無効のまま
+
+**mod_http2 はビルドされているが読み込まれていない**（PHP 7.4 時代から変わらず）。
+`41_mod_http2.conf` は入っているものの、httpd.conf の `LoadModule http2_module` が
+`<IfDefine HTTP2>` で囲まれており、`APACHE2_OPTS` に `-D HTTP2` が付いていないため。
+`genpack/base` の `apache.sh` が足すのは `-D PROXY -D DAV` のみ。
+
+`-D HTTP2` は mod_http2 をロードするかどうかを決めるだけで、MPM とは無関係。
+ただし MPM が event になったので、有効にしたければ `-D HTTP2` を足すだけでよくなった
+（prefork との併用は `apache-2.eclass` が
+`apache2_mpms_prefork? ( !apache2_modules_http2 )` で禁じている組み合わせだった）。
 
 SMB 外部ストレージ用の **smbclient 拡張だけは Portage に無い**ので、`50-php.sh` で
 `pecl install` している（`nextcloud` と同じ手口。ビルド時に `dev-build/autoconf` が要る）。
