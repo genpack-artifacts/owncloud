@@ -1,22 +1,18 @@
 {
+    include_commit_id: true,
+    profile: "paravirt",
     packages: [
         "genpack/paravirt",
 
-        // php74
         "www-servers/apache",
-        "dev-libs/libedit",
-        "media-libs/libaom",
-        "dev-libs/libzip",
-        "net-nds/openldap",
-        "dev-libs/jansson",
-        "x11-libs/libXpm",
-        "media-libs/tiff-compat",
-        "media-libs/libjpeg-turbo",
-        "media-libs/libwebp",
+        "dev-lang/php",
+        "dev-php/PEAR-PEAR",  // pecl (50-php.sh が smbclient 拡張の導入に使う)
+        "dev-php/pecl-apcu",
+        "dev-php/pecl-redis",
 
         "dev-db/mysql",
         "mail-mta/postfix",
-        "net-fs/samba",
+        "net-fs/samba",  // php の smbclient 拡張が使う
         "media-video/ffmpeg",
         "dev-db/redis",
         "net-analyzer/zabbix",
@@ -27,15 +23,24 @@
         "dev-libs/nss"  // certutil (for trust-private-ca.py)
     ],
     buildtime_packages: [
-        //"@php74"
-        "app-arch/rpm2targz",
-        "dev-util/patchelf",
-        "app-misc/jq",  // for parsing GitHub API response to detect latest ownCloud version
+        "dev-build/autoconf",  // needed by 50-php.sh (pecl install smbclient)
     ],
     accept_keywords: {
         "net-vpn/frp": null,
     },
     use:{
+        // ownCloud 11 は PHP 8.3〜8.5 必須。dev-lang/php の amd64 安定版は 8.3 で、
+        // PHP_TARGETS のプロファイル既定値も php8-3 なので pecl 拡張もそのまま乗る。
+        // mod_php(apache2 SAPI)ではなく fpm を選び、70_php_fpm.conf で proxy_fcgi 経由に
+        // 繋いでいる。旧構成(Remi の php-fpm)と同形で apache 側の変更が最小になり、
+        // apache の MPM 選択と PHP の ZTS 要否を切り離せる(nextcloud は mod_php を選んだ
+        // 結果 pecl-imagick の ZTS 非対応に引きずられて prefork 固定になっている)。
+        // 拡張は ownCloud のチェック(zip/dom/XMLWriter/XMLReader/intl/libxml/mbstring/
+        // ctype/JSON/GD/zlib/iconv/SimpleXML/hash/cURL/PDO)を満たす構成。
+        "dev-lang/php": "fpm -apache2 bcmath curl exif ftp gd gmp intl jpeg ldap mysql mysqli pcntl pdo png sharedmem sockets sodium sysvipc truetype webp xmlreader xmlwriter xslt zip -postgres -sqlite",
+        "app-eselect/eselect-php": "fpm",
+        "media-libs/freetype": "harfbuzz",
+        "media-libs/gd": "truetype webp",
         "www-servers/apache": "APACHE2_MODULES: http2 proxy proxy_connect proxy_http proxy_ajp proxy_fcgi remoteip",
         "net-analyzer/zabbix": "curl -frontend -mysql proxy -server snmp openipmi ssh libxml2 -postgres  sqlite",
         "net-analyzer/fping":"suid",

@@ -9,28 +9,19 @@ EOS
 
 with-mysql --mysql-plugin=auth_socket.so 'mysql -u root < /tmp/sql'
 
-# setup PHP
-if [ ! -d /opt/remi/php74 ]; then
-	echo "ownCloud needs PHP 7.4!"
-	exit1 1
-fi
-
-#else
-systemctl enable php74-php-fpm
-PHP_INI=/etc/opt/remi/php74/php.ini
+# ownCloud 向けの php.ini 調整(fpm/cli 双方)。PHP 本体のセットアップは 50-php.sh 参照。
+PHP_INI=/etc/php/*/php.ini
 
 sed -i 's/^upload_max_filesize.\+$/upload_max_filesize = 512M/' $PHP_INI
 sed -i 's/^post_max_size.\+$/post_max_size = 768M/' $PHP_INI
 sed -i 's/^memory_limit.\+$/memory_limit=512M/' $PHP_INI
-sed -i 's/^;mbstring.func_overload.\+$/mbstring.func_overload=0/' $PHP_INI
-sed -i 's/^;always_populate_raw_post_data.\+$/always_populate_raw_post_data=-1/' $PHP_INI
-sed -i 's/^;default_charset.\+$/default_charset="UTF-8"/' $PHP_INI
+sed -i 's/^;\?default_charset.\+$/default_charset="UTF-8"/' $PHP_INI
 
-
-echo "Extrtacting ownCloud..."
-OWNCLOUD_VERSION=$(curl -s https://api.github.com/repos/owncloud/core/releases/latest | jq -r '.tag_name | ltrimstr("v")')
-echo "ownCloud version: $OWNCLOUD_VERSION"
-download "https://download.owncloud.com/server/stable/owncloud-${OWNCLOUD_VERSION}.tar.bz2" | tar jxf - --strip-components=1 -C /var/www/localhost/htdocs
+echo "Extracting ownCloud..."
+# ownCloud 11 以降 https://download.owncloud.com/server/stable/ に tarball が
+# 置かれなくなった(10.16.3 で止まっている)ので GitHub の release アセットから取得する。
+# -qa 版と owncloud-complete-* バンドルは正規表現で除外している。
+download `get-github-download-url owncloud core 'owncloud-[0-9.]+\.tar\.bz2$'` | tar jxf - --strip-components=1 -C /var/www/localhost/htdocs
 
 mkdir /var/lib/owncloud
 chown -R apache.apache /var/www/localhost /var/lib/owncloud
