@@ -1,6 +1,6 @@
 # PHP と ownCloud の現状メモ
 
-最終更新: 2026-08-09
+最終更新: 2026-10-21
 
 ## ownCloud Classic の PHP 事情
 
@@ -18,8 +18,15 @@ ownCloud Classic（10.x 系）は長年 PHP 7.4 のみをサポートし、PHP 8
 - **2026年4月**: 残された Kiteworks が Classic ユーザーを切り捨てられず、
   **ownCloud 11.0.0 プレアルファ** として PHP 8.3 対応版を Docker Hub でリリース。
   タイトルが「PHP 8.3. Yes, for Classic. Yes, we heard you.」という苦渋の滲む内容。
+- **2026年5月6日**: Kiteworks が **ownCloud OSPO(Open Source Program Office)** を発足。
+  ガバナンス憲章・DCO・AI 利用ポリシーを公表。その後のリリース管理は Kiteworks 系 GitHub
+  アカウント(kw-tmueller, kw-fscheuer)が担い、コミットには `Co-authored-by: Claude Opus 4.8/5` が
+  散見される — AI 支援開発を公式方針として導入した。
 - **2026年7月30日**: **ownCloud 11.0.0 正式リリース**。PHP 8.3 が最低要件になり、
   セキュリティ修正 11 件を含む。プレアルファから 3 ヶ月ほどで安定版に到達した。
+- **2026年9月25日**: **ownCloud 11.0.1** セキュリティリリース(ImageMagick プレビュー強化 2 件と
+  appconfig パストラバーサル RCE 修正)。同日 10.16.5、10月6日 10.16.6 も出ており **10.x 系も並行して
+  活発に保守**されている。11.0.0 で問題化した tarball 同梱物の整理(#41824)も 11.0.1 で解決した。
 
 PHP 8 対応が遅れたのはリソース不足というより「Classic は捨てる予定だったので投資しなかった」
 が実態で、買収と人材流出でその計画が崩れた結果、今になって対応を余儀なくされた格好。
@@ -41,7 +48,8 @@ if (PHP_VERSION_ID >= 80600) { /* 8.6 以降は未サポート */ }
 ### 配布方法が GitHub Releases に移った
 
 `https://download.owncloud.com/server/stable/` は **10.16.3 で更新が止まっており**、
-11.0.0 の tarball は置かれていない。11.0.0 のアセットは GitHub Releases のみ:
+11.0.0 の tarball は置かれていない(10.16.4〜10.16.6 も同サイトで確認できず、2026-10-21 再確認済み)。
+11.0.0 のアセットは GitHub Releases のみ:
 
 ```
 https://github.com/owncloud/core/releases/download/v11.0.0/owncloud-11.0.0.tar.bz2
@@ -55,7 +63,9 @@ https://github.com/owncloud/core/releases/download/v11.0.0/owncloud-11.0.0.tar.b
 ### その他の非互換
 
 - **G2 コード署名**に移行。G1 署名は廃止され、`occ integrity:sign-app` /
-  `integrity:sign-core` が削除された。
+  `integrity:sign-core` が削除された。G1 署名アプリは **2026-12-31T23:59:59Z を以って検証失敗**
+  (検証のサンセットがコードにハードコード済み)。Marketplace 等のサードパーティアプリは
+  2027 年までに G2 再署名版への乗り換えが必要。
 - `occ db:convert-type` が削除。caching router も削除。
 - グループ管理者機能が既定で無効になり、`allow_subadmins` で明示的に有効化する形になった。
 - アップグレード元としてサポートされるのは 8.2.11 / 9.0.9 / 9.1 以降。
@@ -137,7 +147,44 @@ ownCloud の公式 Docker イメージ（`owncloud-docker/php`）は **Freexian*
 ownCloud が Pro/Enterprise 契約を結んで顧客への再配布権を得ている形。
 外部から自由に使えるものではなかったため、当時は Remi を使うのが妥当だった。
 
+## このアーティファクトに関係するセキュリティ修正(2026-10-21 調査)
+
+2026年4〜10月は公式 GHSA アドバイザリ(owncloud/security-advisories)の公開ラッシュの期間だったが、
+その多くは「旧バージョンで修正済みで正式開示が後から行われた」ものか、このアーティファクトの素の構成
+(11.0.0、php-imagick 無し、外部ストレージは SMB のみ)で該当しないものだった。
+ここに記すのはこのインスタンスに関係するものだけで、他は
+https://github.com/owncloud/security-advisories を参照。
+
+### 11.0.0 がクリティカル級の修正はすべて内包している
+
+- Critical 級 9.1 のもの(CVE-2025-27844 コードインジェクション、CVE-2026-58274 逆シリアル化、
+  CVE-2025-53827 Updater の危険メソッド露出)はいずれも管理者権限前提で 10.15.1/10.15.2 で修正済み、
+  11.0.0 に継承されている。
+- CVE-2026-70644(認証ユーザー→サーバー上の任意ファイル読取, 7.7)は 10.16.1 で修正済み、継承。
+- CVE-2026-23989(oCIS の公開リンクスコープ不備, 8.2)は Classic 構成なので無関係。
+
+### 11.0.1 で塞がる、この構成に該当する未修正分
+
+1. **ImageMagick プレビュー強化**(#41827/#41834): 不正な SVG/MVG が ImageMagick に素で届き、
+   Web サーバ特権での任意ファイル読書/書込への経路になる。このアーティファクトは php-imagick を
+   入れていないため現時点では攻撃面なし。preview 用に imagick を追加した瞬間に critical 化する。
+2. **appconfig `public_`/`remote_` キーのパストラバーサル→RCE**(#41856、10.16 系では #41803):
+   管理者権限前提。単一管理者のインスタンスでは実リスクは低い。
+3. **依存更新**: guzzle 7.15.2→7.15.5(advisory 13 件クローズ、CVE-2026-69246 ホスト検証バイパス 7.2 含む)、
+   phpseclib 3.0.55→3.0.57(CVE-2026-55599 SSRF は SFTP 外部ストレージ経由。SMB のみの本構成では非該当)。
+4. **occ の `config:*:set` がシークレットを stdout に出さない**(#41779):
+   ビルドスクリプトで occ 経由の鍵をセットする場合のログ漏洩衛生。
+
+緊急パッチを要するクリティカルは現状無い。次期ビルドで 11.0.1 に追随するのが妥当(積み残し参照)。
+
 ## 積み残し
+
+- **アーティファクトの 11.0.1 追随**: 11.0.1 はセキュリティ修正 3 件 + tarball のスリム化
+  (アプリ 13 個が `.git/`・テスト・build 成果物ごと同梱されていた問題が解消、ClamAV での
+  Eicar 誤検出も消える)を含む。バージョン正規表現 `owncloud-[0-9.]+\.tar\.bz2$` はそのまま有効。
+  次期ビルドで 11.0.0 → 11.0.1 に上げる。
+- **G1 署名サンセット(2026-12-31)**: Marketplace 由来等の G1 署名アプリは 2027 年以降
+  `occ integrity:check-app` で失敗する。アプリ導入・更新は G2 再署名済みバージョンで行うこと。
 
 - **igbinary / msgpack シリアライザ**: Remi 版では `php-pecl-igbinary` /
   `php-pecl-msgpack` を入れて redis のシリアライザに使えるようにしていたが、
