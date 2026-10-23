@@ -79,27 +79,17 @@
     ],
 
     variants: {
-        "selftestable": {
+        // Server tarball 非同梱の bundled アプリ(files_antivirus 等)向け variant。
+        // OS 側の依存(ファイルスキャナ)を用意する。files_antivirus は既定無効で、
+        // clamd 起動は運用次第(clamd 無効なら clamcli=clamscan でも動作)。
+        // clamd を既定で起動したい場合は services に "clamd" を追加する。
+        "complete": {
             packages: [
-                "dev-libs/weston-deferred",
-                "www-client/google-chrome",
-                "media-fonts/vlgothic",
+                "app-antivirus/clamav",
             ],
             use: {
-                // for weston
-                "*/*": "-X wayland", 
-                "sys-auth/seatd": "server",
-                // for google-chrome
-                "media-libs/libepoxy": "X",
-                "x11-libs/gtk+": "X",
-                "x11-libs/cairo": "X",
-                "media-libs/libglvnd": "X",
-                "app-text/xmlto": "text", 
+                "app-antivirus/clamav": "systemd",
             },
-            license:{
-                "www-client/google-chrome": "google-chrome"
-            },
-            services: ["weston","seatd"]
         }
     }
 }
