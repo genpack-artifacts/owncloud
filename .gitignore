@@ -1,3 +1,4 @@
 work/
 *.squashfs
 .vscode/
+data.img

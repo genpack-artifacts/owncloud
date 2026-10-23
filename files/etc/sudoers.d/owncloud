@@ -1,0 +1,3 @@
+# owncloud ログインユーザーに occ の実行だけを許可 (sudo 経由で root 起動 →
+# /usr/bin/occ が apache:apache へ特権降格して実行する)。
+owncloud ALL=(root) NOPASSWD: /usr/bin/occ

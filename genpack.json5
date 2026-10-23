@@ -20,10 +20,13 @@
 
         "net-vpn/frp",
 
-        "dev-libs/nss"  // certutil (for trust-private-ca.py)
+        "dev-libs/nss",  // certutil (for trust-private-ca.py)
+
+        "app-admin/sudo"  // owncloud ユーザーが occ を実行するため (sudoers.d/owncloud)
     ],
     buildtime_packages: [
         "dev-build/autoconf",  // needed by 50-php.sh (pecl install smbclient)
+        "app-misc/jq",  // needed by 60-owncloud.sh (parse GitHub releases API)
     ],
     accept_keywords: {
         "net-vpn/frp": null,
@@ -58,6 +61,23 @@
         "dev-db/redis": "SSPL-1"
     },
     services:["apache2", "mysqld", "postfix", "redis"],
+
+    // 運用用ログインユーザー (uid/gid 1000 = 先頭の一般ユーザー UID)。
+    // SSH 鍵でログインし sudo で occ を叩くための入口。公開鍵の設置は本成果物外。
+    groups: [
+        { name: "owncloud", gid: 1000 },
+    ],
+    users: [
+        {
+            name: "owncloud",
+            uid: 1000,
+            home: "/home/owncloud",
+            shell: "/bin/bash",
+            initial_group: "owncloud",
+            create_home: true,
+        },
+    ],
+
     variants: {
         "selftestable": {
             packages: [

@@ -8,7 +8,11 @@ if [ -f /var/www/localhost/htdocs/data/.ocdata ]; then
 else
 	set -e
 	occ maintenance:install --database=mysql --database-name=owncloud --database-user=owncloud --database-pass='' --admin-user=admin --admin-pass=admin
+	# ownCloud の Request::getTrustedDomain() は非信頼 Host 時に trusted_domains[0] に
+	# 落ちる。0 が無いと "Undefined array key 0" → Router に null host が渡り 500 になる
+	# (Untrusted domain の 400 ではなく)。必ず 0 を確保する。
 	occ config:system:delete trusted_domains
+	occ config:system:set trusted_domains 0 --value=localhost
 	occ config:system:set trusted_domains 1 --value=`hostname`
 	occ config:system:set trusted_domains 2 --value=`hostname`.local
 fi
